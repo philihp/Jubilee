@@ -21,7 +21,7 @@ int upColorButtonCycles = 0;
 
 int CYCLES_DEBOUNCE = 2; //check the button for X ticks to see if it is bouncing
 int MAX_COLORS = 8;
-int MAX_MODES = 5;
+int MAX_MODES = 6;
 int MAX_STRIPES = 5;
 
 unsigned long tick = 0;
