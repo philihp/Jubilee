@@ -2,8 +2,13 @@
 #include "SPI.h"
 #include <avr/sleep.h>
 
-int dataPin = 5;
-int clockPin = 6;
+//int dataPin = 11;
+//int clockPin = 13;
+//LPD8806 strip = LPD8806(32*3, dataPin, clockPin);
+//since data is on 11 and clock is on 13, we can use hardware SPI
+LPD8806 strip = LPD8806(32*3);
+
+
 int powerPin = 4;
 int upModePin = 3;
 int downModePin = 2;
@@ -27,7 +32,6 @@ uint32_t c;
 
 // Set the first variable to the NUMBER of pixels. 32 = 32 pixels in a row
 // The LED strips are 32 LEDs per meter but you can extend/cut the strip
-LPD8806 strip = LPD8806(32*3, dataPin, clockPin);
 
 void ISR_Wake() {
   detachInterrupt(0);
