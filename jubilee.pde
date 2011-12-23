@@ -1,34 +1,36 @@
 #include "LPD8806.h"
 #include "SPI.h"
 #include <avr/sleep.h>
+#include "carrot.h"
 
 //int dataPin = 11;
 //int clockPin = 13;
 //LPD8806 strip = LPD8806(32*3, dataPin, clockPin);
 //since data is on 11 and clock is on 13, we can use hardware SPI
-LPD8806 strip = LPD8806(32*3);
+LPD8806 strip = LPD8806(96);
 
 
 int powerPin = 4;
 int upModePin = 3;
-int downModePin = 2;
+int upColorPin = 2;
 
-int upButtonState = HIGH;
-int upButtonCycles = 0;
-int downButtonState = HIGH;
-int downButtonCycles = 0;
+int upModeButtonState = HIGH;
+int upModeButtonCycles = 0;
+int upColorButtonState = HIGH;
+int upColorButtonCycles = 0;
 
 int CYCLES_DEBOUNCE = 2; //check the button for X ticks to see if it is bouncing
-int MAX_COLORS = 7;
-int MAX_MODES = 4;
+int MAX_COLORS = 8;
+int MAX_MODES = 5;
+int MAX_STRIPES = 5;
 
 unsigned long tick = 0;
 
 int mode = 1;
 int color = 1;
 
-uint16_t i, j;
-uint32_t c;
+uint16_t i, j, x, y ;
+uint32_t c, d;
 
 // Set the first variable to the NUMBER of pixels. 32 = 32 pixels in a row
 // The LED strips are 32 LEDs per meter but you can extend/cut the strip
@@ -38,11 +40,16 @@ void ISR_Wake() {
   detachInterrupt(1);
 }
 
-void triggerSleep() {
-  for(int i=0; i < strip.numPixels(); i++) {
+void blackout() {
+  for(int i=0; i < strip.numPixels()+1; i++) {
       strip.setPixelColor(i, strip.Color(0,0,0));
   }
   strip.show();
+}
+
+
+void triggerSleep() {
+  blackout();
 
   attachInterrupt(0,ISR_Wake,LOW); //pin 2
   attachInterrupt(1,ISR_Wake,LOW); //pin 3
@@ -55,11 +62,13 @@ void triggerSleep() {
 }
 
 void triggerModeUp() {
-  if(++mode >= MAX_MODES) mode = 0;
+  ++mode;
+  blackout();
 }
 
-void triggerModeDown() {
-  if(++color >= MAX_COLORS) color = 0;
+void triggerColorUp() {
+  color++;
+  blackout();
 }
 
 
@@ -68,31 +77,31 @@ void handleButtons() {
     triggerSleep();
   }
   // software debounce
-  if(digitalRead(upModePin) != upButtonState) {
-    upButtonCycles++;
-    if(upButtonCycles > CYCLES_DEBOUNCE) {
-      upButtonCycles = 0;
-      upButtonState = digitalRead(upModePin);
-      if(upButtonState == LOW) {
+  if(digitalRead(upModePin) != upModeButtonState) {
+    upModeButtonCycles++;
+    if(upModeButtonCycles > CYCLES_DEBOUNCE) {
+      upModeButtonCycles = 0;
+      upModeButtonState = digitalRead(upModePin);
+      if(upModeButtonState == LOW) {
         triggerModeUp();
       }
     }
   }
   // software debounce
-  if(digitalRead(downModePin) != downButtonState) {
-    downButtonCycles++;
-    if(downButtonCycles > CYCLES_DEBOUNCE) {
-      downButtonCycles = 0;
-      downButtonState = digitalRead(downModePin);
-      if(downButtonState == LOW) {
-        triggerModeDown();
+  if(digitalRead(upColorPin) != upColorButtonState) {
+    upColorButtonCycles++;
+    if(upColorButtonCycles > CYCLES_DEBOUNCE) {
+      upColorButtonCycles = 0;
+      upColorButtonState = digitalRead(upColorPin);
+      if(upColorButtonState == LOW) {
+        triggerColorUp();
       }
     }
   }
 }
 
 void handleStrip() {
-  switch(mode) {
+  switch(mode%MAX_MODES) {
     case 0: //solid
       c = GetColor(color);
       for(i=0; i<strip.numPixels(); i++) {
@@ -107,27 +116,59 @@ void handleStrip() {
       break;
     case 2:
       if(tick % 15 == 0) {
-        c = GetColor(color);
+        c = GetColor(color%MAX_COLORS);
         for(i=0; i<strip.numPixels(); i++) {
           strip.setPixelColor(i, c);
-        }      
-        strip.show();
+        }
+      }
+      if(tick % 15 == 1) {
         c = strip.Color(0,0,0);
         for(i=0; i<strip.numPixels(); i++) {
           strip.setPixelColor(i, c);
         }
       }
       break;
-    case 3:
-      //fuckin' rainbows
-      j = tick % 384;
-      for (i=0; i < strip.numPixels(); i++) {
-        strip.setPixelColor(i, Wheel(((i * 384 / strip.numPixels() * mode) + j) % 384));
+    case 3: //chasers
+      d = (color / MAX_COLORS) % MAX_STRIPES + 1; //chaser
+      c = GetColor(color % MAX_COLORS);       //color
+      j = tick % (strip.numPixels()/d);
+      for(i=0; i < strip.numPixels(); i++) {
+        if(i % (strip.numPixels()/d) == j) {
+          strip.setPixelColor(i, c);
+        }
+        else {
+          strip.setPixelColor(i, strip.Color(0,0,0));
+        }
       }
       break;
-  }  
+    case 4: //fuckin' rainbows
+      j = tick % 384;
+      for(i=0; i < strip.numPixels(); i++) {
+        strip.setPixelColor(i, Wheel(((i * 384 / strip.numPixels() * (color%MAX_COLORS)) + j) % 384));
+      }
+      break;
+    case 5: //carrot POV
+      j = tick % 158;
+      d = carrot[j];
+                               //green                     //orange
+      c = (j < 30)?GetColor((color+2)%MAX_COLORS):GetColor((color+3)%MAX_COLORS);
+      for(i=0;i<32;i++) {
+        //adding 32 to the index makes it appear on the side opposite the controller
+        if(d & 0x00000001) {
+          strip.setPixelColor(i+32, c);
+        }
+        else {
+          strip.setPixelColor(i+32, strip.Color(0,0,0));
+        }
+        d >>= 1;
+      }
+      break;
+  }
+  
+  strip.setPixelColor(strip.numPixels()-1, strip.Color(0,0,0)); //set that last LED off because it overlaps
   strip.show();
 }
+
 
 
 void setup() {
@@ -136,7 +177,7 @@ void setup() {
 
   pinMode(powerPin, INPUT);    // declare pushbutton as input
   pinMode(upModePin, INPUT);    // declare pushbutton as input
-  pinMode(downModePin, INPUT);    // declare pushbutton as input
+  pinMode(upColorPin, INPUT);    // declare pushbutton as input
   
   triggerSleep();
 }
@@ -312,16 +353,18 @@ uint32_t GetColor(int c)
     case 0:
       return strip.Color(127,0,0);
     case 1:
-      return strip.Color(0,127,0);
-    case 2:
       return strip.Color(0,0,127);
+    case 2:
+      return strip.Color(0,127,0);
     case 3:
-      return strip.Color(127,127,0);
+      return strip.Color(127,31,0);
     case 4:
-      return strip.Color(0,127,127);
+      return strip.Color(127,127,0);
     case 5:
-      return strip.Color(127,0,127);
+      return strip.Color(0,127,127);
     case 6:
+      return strip.Color(127,0,127);
+    case 7:
       return strip.Color(127,127,127);
     default:
       return strip.Color(0,0,0);
