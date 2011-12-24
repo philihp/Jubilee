@@ -21,7 +21,7 @@ int upColorButtonCycles = 0;
 
 int CYCLES_DEBOUNCE = 2; //check the button for X ticks to see if it is bouncing
 int MAX_COLORS = 8;
-int MAX_MODES = 6;
+int MAX_MODES = 7;
 int MAX_STRIPES = 5;
 
 unsigned long tick = 0;
@@ -103,7 +103,7 @@ void handleButtons() {
 void handleStrip() {
   switch(mode%MAX_MODES) {
     case 0: //solid
-      c = GetColor(color);
+      c = GetColor(color%MAX_COLORS);
       for(i=0; i<strip.numPixels(); i++) {
         strip.setPixelColor(i, c);
       }
@@ -141,13 +141,27 @@ void handleStrip() {
         }
       }
       break;
-    case 4: //fuckin' rainbows
+    case 4: //chasers + statics
+      d = (color / MAX_COLORS) % MAX_STRIPES + 1; //chaser
+      c = GetColor(color % MAX_COLORS);       //color
+      j = tick % (strip.numPixels()/d);
+      for(i=0; i < strip.numPixels(); i++) {
+        x = i % (strip.numPixels()/d);
+        if((x == j) || (x == 0)) {
+          strip.setPixelColor(i, c);
+        }
+        else {
+          strip.setPixelColor(i, strip.Color(0,0,0));
+        }
+      }
+      break;
+    case 5: //fuckin' rainbows
       j = tick % 384;
       for(i=0; i < strip.numPixels(); i++) {
         strip.setPixelColor(i, Wheel(((i * 384 / strip.numPixels() * (color%MAX_COLORS)) + j) % 384));
       }
       break;
-    case 5: //carrot POV
+    case 6: //carrot POV
       j = tick % 158;
       d = carrot[j];
                                //green                     //orange
