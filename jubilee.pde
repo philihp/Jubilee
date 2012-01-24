@@ -1,11 +1,8 @@
-#include "LPD8806.h"
+#include "LPD8806/LPD8806.h"
 #include "SPI.h"
 #include <avr/sleep.h>
 #include "carrot.h"
 
-//int dataPin = 11;
-//int clockPin = 13;
-//LPD8806 strip = LPD8806(32*3, dataPin, clockPin);
 //since data is on 11 and clock is on 13, we can use hardware SPI
 LPD8806 strip = LPD8806(96);
 
