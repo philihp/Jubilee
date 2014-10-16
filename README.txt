@@ -1,5 +1,7 @@
 Jubilee is an Arduino powered LED Hula Hoop
 
+[![Gitter](https://badges.gitter.im/Join Chat.svg)](https://gitter.im/philihp/Jubilee?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 This source code controls it. Components are as follows:
 
 1* Arduino Pro Mini, 5v
@@ -10,4 +12,3 @@ This source code controls it. Components are as follows:
 3* Resistors (doesn't really matter the resistance)
 3m High-Density Polyethylene Tubing <http://www.mcmaster.com/#50375K55>
 3m Adafruit Digital Addressable RGB LED Strips <http://www.adafruit.com/products/306>
-[![Gitter](https://badges.gitter.im/Join Chat.svg)](https://gitter.im/philihp/Jubilee?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
